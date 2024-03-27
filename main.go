@@ -78,7 +78,7 @@ func db_connect(cfg mysql.Config) *sql.DB {
 	return pool
 }
 
-type Album_Cols struct {
+type Album struct {
 	ID     string
 	Title  string
 	Artist string
@@ -92,14 +92,16 @@ func db_fetch_all(db_pool *sql.DB) (string, error) {
 		fmt.Println(err, "Query error")
 	}
 	fmt.Println(rows, "rows")
-
+	
+	var albums []Album
 	for rows.Next() {
-		var row Album_Cols
+		var row Album
 		err := rows.Scan(&row.ID, &row.Title, &row.Artist, &row.Price)
 		if err != nil {
 			fmt.Println(err, "err")
 		}
-		fmt.Println(row)
+		albums = append(albums, row);
+		fmt.Println(albums, "albums")
 	}
 	return "hello world", nil
 }
@@ -123,6 +125,7 @@ func fetch_all(db_pool *sql.DB) func(http.ResponseWriter, *http.Request) {
 }
 
 func main() {
+
 	cfg := mysql.Config{
 		User:   os.Getenv("DBUSER"),
 		Passwd: os.Getenv("DBPASS"),
@@ -130,12 +133,11 @@ func main() {
 		Addr:   "127.0.0.1:3306",
 		DBName: "recordings",
 	}
-	db_pool := db_connect(cfg)
-	print_db_pointer(db_pool)
-	db_fetch_all(db_pool)
+	pool := db_connect(cfg)
+	print_db_pointer(pool)
+	db_fetch_all(pool)
 
-	http.HandleFunc("/fetch_all/", fetch_all(db_pool))
-
+	http.HandleFunc("/fetch_all/", fetch_all(pool))
 	http.HandleFunc("/print_pointer/", print_pointer)
 	http.HandleFunc("/decoder_decode/", decoder_decode)
 	http.HandleFunc("/read_unmarshall/", read_unmarshall)
