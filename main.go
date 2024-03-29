@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	//"strings"
 )
 
 // can't use println() for structs
@@ -63,19 +64,26 @@ func read_unmarshall(w http.ResponseWriter, r *http.Request) {
 	log.Println(t)
 }
 
-func db_connect(cfg mysql.Config) *sql.DB {
-	var pool *sql.DB
+//var db_pool *sql.DB
+
+func initiate_db_pool() {
+	cfg := mysql.Config{
+		User:   os.Getenv("DBUSER"),
+		Passwd: os.Getenv("DBPASS"),
+		Net:    "tcp",
+		Addr:   "127.0.0.1:3306",
+		DBName: "recordings",
+	}
 	var err error
-	pool, err = sql.Open("mysql", cfg.FormatDSN())
+	db_pool, err = sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
 		log.Fatal(err)
 	}
-	pingErr := pool.Ping()
+	pingErr := db_pool.Ping()
 	if pingErr != nil {
 		log.Fatal(pingErr)
 	}
 	fmt.Println("Connected!")
-	return pool
 }
 
 type Album struct {
@@ -85,59 +93,74 @@ type Album struct {
 	Price  string
 }
 
-func db_fetch_all(db_pool *sql.DB) (string, error) {
+func db_fetch_albums() ([]Album, error) {
 	//next() + scan() + struct
 	rows, err := db_pool.Query("select * from album")
 	if err != nil {
 		fmt.Println(err, "Query error")
 	}
-	fmt.Println(rows, "rows")
-	
 	var albums []Album
 	for rows.Next() {
 		var row Album
 		err := rows.Scan(&row.ID, &row.Title, &row.Artist, &row.Price)
 		if err != nil {
-			fmt.Println(err, "err")
+			fmt.Println(err, "Row Scan error")
 		}
-		albums = append(albums, row);
-		fmt.Println(albums, "albums")
+		albums = append(albums, row)
 	}
-	return "hello world", nil
+	fmt.Println(albums, "albums")
+	return albums, nil
 }
 
-func fetch_all(db_pool *sql.DB) func(http.ResponseWriter, *http.Request) {
+func fetch_albums(w http.ResponseWriter, r *http.Request) {
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("fetch all")
+	search_params := r.URL.Query()
+	fmt.Println("Search params:", search_params)
+	fmt.Println("GET params were:", r.URL.Query())
+	fmt.Println(r.URL, "r.URL")
 
-		//busy here
-		test, err := db_fetch_all(db_pool)
-		if err != nil {
-			fmt.Println(err, "err")
-		}
-		println(test, "test")
+	//var s2 = []string
+	//fmt.Println(search_params["artists"], "artists")
 
-		//busy here
-		w.Write([]byte("fetch all"))
+	var s1 = []string{"a", "b"}
+
+	//var pow = []int{1, 2, 4, 8, 16, 32, 64, 128}
+
+	for i, v := range s1 {
+		fmt.Println(i, v, "GET param")
 	}
-	return handler
+
+	//url_parsed, err := url.Parse(r.URL)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
+	//fmt.Println(url_parsed.Query, "r.URL.Query")
+
+	albums, err := db_fetch_albums()
+	if err != nil {
+		fmt.Println(err, "err")
+	}
+	json_bytes, err := json.Marshal(albums)
+	if err != nil {
+		fmt.Println(err, "JSON Marshall err")
+	}
+	fmt.Println(albums)
+	w.Write(json_bytes)
 }
+
+var db_pool *sql.DB
 
 func main() {
 
-	cfg := mysql.Config{
-		User:   os.Getenv("DBUSER"),
-		Passwd: os.Getenv("DBPASS"),
-		Net:    "tcp",
-		Addr:   "127.0.0.1:3306",
-		DBName: "recordings",
-	}
-	pool := db_connect(cfg)
-	print_db_pointer(pool)
-	db_fetch_all(pool)
+	initiate_db_pool()
+	print_db_pointer(db_pool)
 
-	http.HandleFunc("/fetch_all/", fetch_all(pool))
+	//db_fetch_all(db_pool)
+	//"/albums?artist=John%20Coltane"
+	//"/albums?artist=john%20coltane"
+
+	http.HandleFunc("/albums", fetch_albums)
 	http.HandleFunc("/print_pointer/", print_pointer)
 	http.HandleFunc("/decoder_decode/", decoder_decode)
 	http.HandleFunc("/read_unmarshall/", read_unmarshall)
