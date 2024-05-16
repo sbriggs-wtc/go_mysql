@@ -1,20 +1,18 @@
 package main
 
 import (
-	//        "encoding/json"
-	"fmt"
-
 	"database/sql"
+	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
-	//        "io"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/gin-gonic/gin"
+	//        "io"
+	//        "encoding/json"
 )
 
-//struct tags
+// struct tags
 type album struct {
 	ID     string  `json:"id"`
 	Title  string  `json:"title"`
@@ -46,20 +44,6 @@ func initiate_db_pool() {
 		log.Fatal(pingErr)
 	}
 	fmt.Println("Connected!")
-}
-
-var db_pool *sql.DB
-
-func main() {
-
-	initiate_db_pool()
-
-	router := gin.Default()
-	router.GET("/albums", getAlbums)
-	router.GET("/albums/:id", getAlbumByID)
-	router.POST("/albums", postAlbums)
-
-	router.Run("localhost:8080")
 }
 
 func db_fetch_albums() ([]album, error) {
@@ -144,4 +128,18 @@ func getAlbumByID(c *gin.Context) {
 		}
 	}
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+}
+
+var db_pool *sql.DB
+
+func main() {
+
+	initiate_db_pool()
+
+	router := gin.Default()
+	router.GET("/albums", getAlbums)
+	router.GET("/albums/:id", getAlbumByID)
+	router.POST("/albums", postAlbums)
+
+	router.Run("localhost:8080")
 }
