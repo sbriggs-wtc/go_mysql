@@ -1,5 +1,7 @@
-DROP TABLE IF EXISTS album;
-CREATE TABLE album (
+-- DROP TABLE IF EXISTS album;
+-- CREATE TABLE album (
+CREATE TABLE IF NOT EXISTS album (
+  
   id         INT AUTO_INCREMENT NOT NULL,
   title      VARCHAR(128) NOT NULL,
   artist     VARCHAR(255) NOT NULL,

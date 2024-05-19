@@ -1,2 +1,1 @@
-CREATE DATABASE recordings;
-
+CREATE DATABASE IF NOT EXISTS recordings;
